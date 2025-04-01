@@ -1,16 +1,19 @@
 # NestJS Payment and Invoice Management System
 
-A robust NestJS application for managing payments and invoices with TypeORM and MySQL.
+A robust NestJS application for managing payments and invoices with TypeORM and MySQL, featuring JWT authentication and a modern Vue.js frontend.
 
 ## Features
 
+- User authentication with JWT
 - Payment processing and management
 - Invoice generation and tracking
 - MySQL database integration with TypeORM
-- RESTful API endpoints
+- RESTful API endpoints with authentication guards
 - Type-safe DTOs and entities
 - Base repository and service patterns
 - Migration support
+- CORS enabled for frontend integration
+- Modern UI with Vue.js frontend
 
 ## Prerequisites
 
@@ -31,22 +34,30 @@ cd nestjsdb
 npm install
 ```
 
-3. Configure your MySQL database:
-- Create a database named `nestjsapp`
-- Update the database configuration in `src/app.module.ts` if needed:
-```typescript
-{
-  type: 'mysql',
-  host: 'localhost',
-  port: 3306,
-  username: 'root',
-  password: '',
-  database: 'nestjsapp',
-  // ... other options
-}
+3. Set up environment variables:
+Create a `.env` file in the root directory with the following variables:
+```env
+# Database Configuration
+DB_HOST=localhost
+DB_PORT=3306
+DB_USERNAME=root
+DB_PASSWORD=
+DB_NAME=nestjsapp
+
+# JWT Configuration
+JWT_SECRET=your-secret-key
+JWT_EXPIRES_IN=1d
+
+# Server Configuration
+PORT=3000
+NODE_ENV=development
 ```
 
-4. Run migrations:
+4. Configure your MySQL database:
+- Create a database named `nestjsapp`
+- The application will automatically create the necessary tables on first run
+
+5. Run migrations:
 ```bash
 npm run migration:run
 ```
@@ -66,6 +77,52 @@ npm run start:prod
 
 ## API Endpoints
 
+### Authentication
+
+#### Register User
+```http
+POST /auth/register
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "password123",
+  "firstName": "John",
+  "lastName": "Doe"
+}
+```
+
+#### Login User
+```http
+POST /auth/login
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "password123"
+}
+```
+
+Response:
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "id": "uuid",
+    "email": "user@example.com",
+    "firstName": "John",
+    "lastName": "Doe"
+  }
+}
+```
+
+### Protected Routes
+
+All payment and invoice routes require authentication. Include the JWT token in the Authorization header:
+```http
+Authorization: Bearer your-jwt-token
+```
+
 ### Payments
 
 #### Create Payment
@@ -80,31 +137,14 @@ Content-Type: application/json
 }
 ```
 
-#### Process Payment
+#### Get All Payments
 ```http
-POST /payments/process
-Content-Type: application/json
-
-{
-  "amount": 200,
-  "currency": "EUR",
-  "description": "Process this payment"
-}
+GET /payments
 ```
 
 #### Get Payment by ID
 ```http
 GET /payments/:id
-```
-
-#### Get Payments by Status
-```http
-GET /payments/status/:status
-```
-
-#### Get Pending Payments
-```http
-GET /payments/pending
 ```
 
 #### Update Payment
@@ -138,29 +178,19 @@ Content-Type: application/json
 }
 ```
 
+#### Get All Invoices
+```http
+GET /invoices
+```
+
 #### Get Invoice by ID
 ```http
 GET /invoices/:id
 ```
 
-#### Get Invoice by Number
-```http
-GET /invoices/number/:invoiceNumber
-```
-
-#### Get Overdue Invoices
-```http
-GET /invoices/overdue
-```
-
 #### Mark Invoice as Paid
 ```http
 PUT /invoices/:id/mark-paid
-```
-
-#### Get Unpaid Invoices
-```http
-GET /invoices/unpaid
 ```
 
 #### Update Invoice
@@ -184,36 +214,47 @@ DELETE /invoices/:id
 
 ```
 src/
+├── auth/
+│   ├── auth.controller.ts
+│   ├── auth.module.ts
+│   ├── auth.service.ts
+│   └── strategies/
+│       └── jwt.strategy.ts
 ├── common/
 │   ├── controllers/
-│   │   └── base.controller.ts
 │   ├── interfaces/
-│   │   └── base.entity.interface.ts
 │   ├── repositories/
-│   │   └── base.repository.ts
 │   └── services/
-│       └── base.service.ts
 ├── controllers/
 │   ├── payment.controller.ts
 │   └── invoice.controller.ts
 ├── dto/
+│   ├── auth.dto.ts
 │   ├── payment.dto.ts
 │   └── invoice.dto.ts
 ├── entities/
+│   ├── user.entity.ts
 │   ├── payment.entity.ts
 │   └── invoice.entity.ts
 ├── repositories/
-│   ├── payment.repository.ts
-│   └── invoice.repository.ts
 ├── services/
-│   ├── payment.service.ts
-│   └── invoice.service.ts
 ├── migrations/
 ├── app.module.ts
 └── main.ts
 ```
 
 ## Database Schema
+
+### Users Table
+- id (UUID, Primary Key)
+- email (String, Unique)
+- password (String, Hashed)
+- firstName (String)
+- lastName (String)
+- role (Enum: USER, ADMIN)
+- isActive (Boolean)
+- createdAt (Date)
+- updatedAt (Date)
 
 ### Payments Table
 - id (UUID, Primary Key)
@@ -233,6 +274,26 @@ src/
 - notes (String, Optional)
 - createdAt (Date)
 - updatedAt (Date)
+
+## Security
+
+- Passwords are hashed using bcrypt
+- JWT tokens are used for authentication
+- CORS is enabled and configured for frontend integration
+- Environment variables are used for sensitive data
+- Production mode disables synchronize option for TypeORM
+
+## Error Handling
+
+The API returns appropriate HTTP status codes and error messages:
+
+- 200: Success
+- 201: Created
+- 400: Bad Request
+- 401: Unauthorized
+- 403: Forbidden
+- 404: Not Found
+- 500: Internal Server Error
 
 ## Contributing
 

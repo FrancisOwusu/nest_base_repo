@@ -1,41 +1,35 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { ConfigModule } from '@nestjs/config';
+import { PaymentModule } from './payment/payment.module';
+import { InvoiceModule } from './invoice/invoice.module';
+import { AuthModule } from './auth/auth.module';
+import { User } from './entities/user.entity';
 import { Payment } from './entities/payment.entity';
 import { Invoice } from './entities/invoice.entity';
-import { PaymentRepository } from './repositories/payment.repository';
-import { InvoiceRepository } from './repositories/invoice.repository';
-import { PaymentService } from './services/payment.service';
-import { InvoiceService } from './services/invoice.service';
-import { PaymentController } from './controllers/payment.controller';
-import { InvoiceController } from './controllers/invoice.controller';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
     TypeOrmModule.forRoot({
       type: 'mysql',
-      host: 'localhost',
-      port: 3306,
-      username: 'root',
-      password: '',
-      database: 'nestjsapp',
-      entities: [Payment, Invoice],
-      synchronize: false,
+      host: process.env.DB_HOST || 'localhost',
+      port: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : 3306,
+      username: process.env.DB_USERNAME || 'root',
+      password: process.env.DB_PASSWORD || '',
+      database: process.env.DB_NAME || 'nestjsapp',
+      entities: [User, Payment, Invoice],
+      synchronize: process.env.NODE_ENV !== 'production',
       migrations: ['dist/migrations/*.js'],
       migrationsRun: true,
       logging: true,
       charset: 'utf8mb4'
     }),
-    TypeOrmModule.forFeature([Payment, Invoice]),
-  ],
-  controllers: [AppController, PaymentController, InvoiceController],
-  providers: [
-    AppService,
-    PaymentRepository,
-    InvoiceRepository,
-    PaymentService,
-    InvoiceService,
+    AuthModule,
+    PaymentModule,
+    InvoiceModule,
   ],
 })
 export class AppModule {}
